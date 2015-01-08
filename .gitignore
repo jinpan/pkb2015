@@ -1,0 +1,9 @@
+engine_1.0.jar
+sqlite.db
+.sconsign.dblite
+
+*.dump
+*.pyc
+*.swp
+
+output/match_*
