@@ -3,6 +3,9 @@ import socket
 import sys
 
 
+import lib
+
+
 """
 Simple example pokerbot, written in python.
 
@@ -38,24 +41,40 @@ class Player(object):
             # illegal action.
             # When sending responses, terminate each response with a newline
             # character (\n) or your bot will hang!
-            msg_type = data.split()[0]
+            msg = data.split()
+            msg_type = msg[0]
             if msg_type == "NEWGAME":
-                self.game = Game(*data.split()[1:])
+                self.game = lib.Game(*data.split()[1:])
+
             elif msg_type == "NEWHAND":
                 card1 = data.split()[3]
                 card2 = data.split()[4]
-                self.hand = Hand()
-                self.hand.addCard(Card.new(card1))
-                self.hand.addCard(Card.new(card2))
+
+                self.game.hand = [card1, card2]
             elif msg_type == "GETACTION":
-                # Currently CHECK on every move. You'll want to change this.
-                s.send("CHECK\n")
+                self.getaction(msg)
+
             elif msg_type == "REQUESTKEYVALUES":
                 # At the end, the engine will allow your bot save key/value pairs.
                 # Send FINISH to indicate you're done.
                 s.send("FINISH\n")
         # Clean up the socket.
         s.close()
+
+    def getaction(msg):
+        # GETACTION potSize numBoardCards [boardCards] [stackSizes] numActivePlayers [activePlayers] numLastActions [lastActions] numLegalActions [legalActions] timebank
+
+        potSize = int(msg[1])
+        nBoardCards = int(msg[2])
+        boardCards = msg[3:3+nBoardCards]
+
+        hand = self.game.hand + boardCards
+        score = lib.score(hand, 5-nBoardCards)
+
+        if score < 10:
+            s.send("CHECK\n")
+        else:
+            s.send("RAISE:%d\n" % min(potSize, 10))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='A Pokerbot.',

@@ -5,7 +5,8 @@ if __name__ == '__main__':
     system("mv match_*.txt output")
     system("python plot.py")
 
-    clear = raw_input("wipe output?")
+    clear = raw_input("wipe output?\n")
     if clear.strip() == "yes":
-        system("rm output/*")
+        print "wiping output"
+        system("rm output/match_*")
 
