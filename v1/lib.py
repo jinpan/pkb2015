@@ -39,11 +39,59 @@ SUIT_TO_IDX = {
     's': 4,
 }
 
+"""
+NUM_HANDS = [
+        num_singles,
+        num_one_pair,
+        num_two_pair,
+        num_three,
+        num_straight,
+        num_flush,
+        num_full_house,
+        num_four,
+        num_straight_flush
+]
+"""
+
+NUM_HANDS = [
+        1302540, 
+        1098240, 
+        123552, 
+        54912, 
+        10200, 
+        5108, 
+        3744, 
+        624, 
+        40,
+]
+TOTAL_NUM_HANDS = sum(NUM_HANDS) 
+
 def score(hand, nleft):
+    return hands_beat_rough(hand_rank(hand))
     rank = hand_rank(hand)
 
     return rank[0] + 3 * nleft
 
+def hands_beat_rough(hand_rank):
+    rough_rank = hand_rank[0]
+    return sum(NUM_HANDS[:rough_rank]) 
+
+'''
+def hands_beat_fine(hand_rank):
+    rough_rank = hand_rank[0]
+    tie_breakers = hand_rank[1:]
+    
+    # calculate the number of hands within the rough rank
+    # that our hand beats
+    if rough_rank == 0: # high card
+        h = max(tie_breakers)
+        # doesn't include ties with same high card
+        return h*(h-1)*(h-2)*(h-3)*(h-4) / math.factorial(5)
+    if rough_rank == 1:
+        h = tie_breakers[0]
+        # doesn't include ties with the same pair
+        return 
+'''
 
 def hand_rank(hand):
     ranks = card_ranks(hand)

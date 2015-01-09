@@ -87,7 +87,7 @@ class Player(object):
         hand = self.game.hand + boardCards
         score = lib.score(hand, 5-nBoardCards)
 
-        if score < 10:
+        if score < 1.2e6:
             s.send("CHECK\n")
         else:
             # try to raise
