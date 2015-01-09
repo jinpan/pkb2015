@@ -61,12 +61,28 @@ class Player(object):
         # Clean up the socket.
         s.close()
 
-    def getaction(msg):
+    def getaction(self, msg):
         # GETACTION potSize numBoardCards [boardCards] [stackSizes] numActivePlayers [activePlayers] numLastActions [lastActions] numLegalActions [legalActions] timebank
 
         potSize = int(msg[1])
         nBoardCards = int(msg[2])
         boardCards = msg[3:3+nBoardCards]
+        stackSizes = msg[3+nBoardCards:6+nBoardCards]
+
+        numActivePlayersIdx = 6 + nBoardCards
+        numActivePlayers = int(msg[numActivePlayersIdx])
+        activePlayers = msg[1+numActivePlayersIdx:1+numActivePlayersIdx+numActivePlayers]
+
+        numLastActionsIdx = 1 + numActivePlayersIdx + numActivePlayers
+        numLastActions = int(msg[numLastActionsIdx])
+        lastActions = msg[1+numLastActionsIdx:1+numLastActionsIdx+numLastActions]
+
+        numLegalActionsIdx = 1 + numLastActionsIdx + numLastActions
+        numLegalActions = int(msg[numLegalActionsIdx])
+        legalActions = msg[1+numLegalActionsIdx:1+numLegalActionsIdx+numLegalActions]
+
+        timeBankIdx = 1 + numLegalActionsIdx + numLegalActions
+        timeBank = float(msg[timeBankIdx])
 
         hand = self.game.hand + boardCards
         score = lib.score(hand, 5-nBoardCards)
@@ -74,7 +90,13 @@ class Player(object):
         if score < 10:
             s.send("CHECK\n")
         else:
-            s.send("RAISE:%d\n" % min(potSize, 10))
+            # try to raise
+            raiseCmd = filter(lambda x: x.startswith('RAISE'), legalActions)
+            if len(raiseCmd) == 1:
+                _, upper = raiseCmd[0].split(':')[1:]
+                s.send("RAISE:%s\n" % upper)
+            else:
+                s.send("CHECK\n")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='A Pokerbot.',
