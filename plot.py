@@ -1,6 +1,7 @@
 from os import listdir
 from os.path import join
 from re import match
+from sys import argv
 
 from matplotlib import pyplot as plt
 
@@ -15,8 +16,10 @@ def process(line):
         return None
 
 if __name__ == '__main__':
+    nRuns = int(argv[1])
+
     filenames = filter(lambda x: x.startswith('match_'), listdir('output/'))
-    for filename in sorted(filenames)[-6:]:
+    for filename in sorted(filenames)[-6*nRuns:]:
         xs, ys = [], []
         with open(join('output', filename)) as f:
             for line in f.readlines():
@@ -25,4 +28,6 @@ if __name__ == '__main__':
                     xs.append(x)
                     ys.append(y)
         plt.plot(xs, ys)
+
+    plt.xlim(xmax=200)
     plt.show()
