@@ -79,17 +79,15 @@ class Bot:
                         g.min_raise = m[1]
                         g.max_raise = m[2]
 
-                
-
                 # TBD: Use phase 1 of the brain to update pmfs of villains
                 # TBD: Use phase 2 of the brain to determine best action
 
                 # Maybe would look something like this?
-                """action = Brain.play(g,history,legal)"""
-                # For now, lets make the bot only fold
-                action = -1
+                """action = Brain.play(g,history)"""
+                # For now, lets make the bot only check/fold
+                action = 0
 
-                # Interpret the action and then send.
+                # Interpret the action and then send
                 s.send(self.interpret(action))
             elif msg_type == "HANDOVER":
                 # HANDOVER [stackSizes] numBoardCards [boardCards] numLastActions [lastActions] timeBank
@@ -105,7 +103,7 @@ class Bot:
                 
                 # TBD: Do we want to update player profiles based on this history?
                 # Maybe would look something like this?
-                Brain.update_profiles(g,history)
+                """Brain.update_profiles(g,history)"""
                 # Note we don't need to update pdfs
 
             elif msg_type == "KEYVALUE":
@@ -166,7 +164,7 @@ class Bot:
         elif action < g.call_amt:
             return 'FOLD\n' # Perform fold
         else:
-            print('Error: impossible action'+str(action))
+            print('Error: impossible action '+str(action))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='A Pokerbot.',
@@ -178,11 +176,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Create a socket connection to the engine.
-    print 'Connecting to %s:%d' % (args.host, args.port)
+    print('Connecting to %s:%d' % (args.host, args.port))
     try:
        s = socket.create_connection((args.host, args.port))
     except socket.error as e:
-       print 'Error connecting! Aborting'
+       print('Error connecting! Aborting')
        exit()
 
     bot = Bot()
