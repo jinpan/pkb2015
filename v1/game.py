@@ -5,9 +5,10 @@ class Player:
 	def __init__(self,name,stack):
 		self.name = name
 		self.stack = stack
-		self.isActive = True
+		self.isActive = True # Whether busted or not
 		self.seat = 1 # Default seat is button
 		self.hole = [] # This should only be needed by the hero
+		self.isin = True # Whether folded or not
 
 class Villain(Player):
 	"""
@@ -17,10 +18,27 @@ class Villain(Player):
 	"""
 	def __init__(self,name,stack):
 		Player.__init__(self,name,stack)
-		# TBD: Put interesting stylistic attributes here (like pdf)
-		# Initialize with a uniform pdf (linear cdf)
-		# 52 choose 2 = 1326
-		self.cdf = list(map(lambda x: x/1326, range(1326)))
+		# TBD: Put villain traits here
+
+
+		# Valid villain moves are currently: 
+		# ['CHECKFOLD'], ['CALL',amt], ['RAISE',amt], ['NEWBET']
+		# BET is included in RAISE and ENDBET is when new cards or streets open
+		self.move_list = [['NEWBET']]
+
+		# Note: 52 choose 2 = 1326
+		self.pdf = [1/1326.]*1326 # PDF of hole cards
+		self.cdf = map(lambda x: x/1326., xrange(1326)) # CDF of hole cards
+		# Equity of hole cards (TBD: MAKE THIS THE UNIFORM PREFLOP EQUITY)
+		self.equ = map(lambda x: x/1326., xrange(1326)) # Linear for now
+
+		# Cutoffs are used to convert villain equity into villain pdfs.
+		# Any equity >= the cutoff key will result in the key's move.
+		self.cutoffs = { # Anything below CALL will be a CHECKFOLD
+		'CALL': .5,
+		'RAISE': .8
+		}
+
 
 class Game:
 	"""
@@ -29,11 +47,11 @@ class Game:
    	"""
    	def __init__(self, names,stack,bb,hands_max,timebank):
    		# Create list of players (of which we are index 0)
-   		self.names = names
-   		print names
    		self.p = [Player(names[0],stack),Villain(names[1],stack),Villain(names[2],stack)]
+   		self.names = names
    		self.seating = dict(zip([0,1,2],[0,1,2])) # Returns the seat given index
-   		
+   		self.name2ind = dict(zip([x.name for x in self.p],[0,1,2])) # Returns index given name
+
    		# Set up the chips, table, & legal moves
    		self.pot = 0 # Pot size
    		self.comm = [] # List of community cards

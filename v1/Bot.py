@@ -3,7 +3,7 @@ import socket
 import sys
 
 from game import Game
-# from brain import Brain
+from brain import Brain
 
 """
 Class to communicate with the engine and update the 'Game' class.
@@ -51,11 +51,14 @@ class Bot:
                     g.p[i].seat = g.seating[i]
                     g.p[i].stack = stacks[g.seating[i]]
                     g.p[i].isActive = isActive[g.seating[i]]
+                # Clear villain history
+                for v in g.p[1:]:
+                    v.move_list = [['NEWBET']]
 
             elif msg_type == "GETACTION":
                 # GETACTION potSize numBoardCards [boardCards] [stackSizes] numActivePlayers [activePlayers] numLastActions [lastActions] numLegalActions [legalActions] timebank
                 form = 'nl3n3lln'
-                [pot,comm,stacks,n_active,isActive,history,legalstr,timebank] = self.parse(msg[1:],form)
+                [pot,comm,stacks,n_active,isActive,historystr,legalstr,timebank] = self.parse(msg[1:],form)
                 g = self.game
                 # Update game state
                 g.pot = pot
@@ -72,7 +75,7 @@ class Bot:
                 g.call_amt = 0
                 g.min_raise = 0 # If we can't raise, this will stay at 0
                 g.max_raise = 0 # If we can't raise, this will stay at 0
-                g.legal = list(map(lambda s: s.split(':'), legalstr))
+                g.legal = map(lambda s: s.split(':'), legalstr)
                 for m in g.legal:
                     if m[0] == 'CALL':
                         g.call_amt = float(m[1])
@@ -83,20 +86,24 @@ class Bot:
                         g.max_raise = float(m[2])
                         g.validRB = m[0]
 
+                # Update player move histories
+                self.study(historystr)
+
                 # TBD: Use phase 1 of the brain to update pmfs of villains
                 # TBD: Use phase 2 of the brain to determine best action
 
                 # Maybe would look something like this?
-                """action = Brain.play(g,history)"""
+                """action = Brain.play(g)"""
                 # For now, lets make the bot max raise
                 action = max(g.max_raise,g.call_amt)
 
                 # Interpret the action and then send
                 s.send(self.interpret(action))
+
             elif msg_type == "HANDOVER":
                 # HANDOVER [stackSizes] numBoardCards [boardCards] numLastActions [lastActions] timeBank
                 form = '3lln'
-                [stacks,comm,history,timebank] = self.parse(msg[1:],form)
+                [stacks,comm,historystr,timebank] = self.parse(msg[1:],form)
                 g = self.game
                 # Update game state
                 g.timebank = timebank
@@ -107,7 +114,7 @@ class Bot:
                 
                 # TBD: Do we want to update player profiles based on this history?
                 # Maybe would look something like this?
-                """Brain.update_profiles(g,history)"""
+                """Brain.retrospect(g)"""
                 # Note we don't need to update pdfs
 
             elif msg_type == "KEYVALUE":
@@ -155,11 +162,10 @@ class Bot:
         Otherwise, print an error.
 
         """
-        g = self.game
-        print ''
-        print 'HAND:          ' + str(g.hands_idx)
+        g = self.game        
         print 'Legal actions: ' + str(g.legal)
         print 'Action:        ' + str(action)
+        print ''
 
         # use validRB to decide whether to RAISE or just BET
         if action > g.max_raise and g.max_raise != 0:
@@ -175,6 +181,31 @@ class Bot:
             return 'FOLD\n' # Perform fold
         else:
             print 'Error: impossible action '+str(action) 
+    def study(self,historystr):
+        """
+        Updates player move history given a historystr.
+        """
+        g = self.game
+        history = map(lambda s: s.split(':'), historystr)
+        for m in history:
+            idx = g.name2ind.get(m[-1]) # Player idx that made move
+            if idx != 0: # As long as we aren't analyzing ourselves...
+                if m[0] == 'FOLD' or m[0] == 'CHECK':
+                    g.p[idx].move_list.append(['CHECKFOLD'])
+                elif m[0] == 'CALL':
+                    g.p[idx].move_list.append(['CALL',float(m[1])])
+                elif m[0] == 'RAISE' or m[0] == 'BET':
+                    g.p[idx].move_list.append(['RAISE',float(m[1])])
+                else:
+                    for v in g.p[1:]:
+                        if v.move_list[-1] != ['NEWBET']:
+                            v.move_list.append(['NEWBET'])
+
+        print 'HAND:          ' + str(g.hands_idx)
+        print 'HISTORY:       ' + str(history)
+        print g.p[1].name + ' HIST:       ' + str(g.p[1].move_list)
+        print g.p[2].name + ' HIST:       ' + str(g.p[2].move_list)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='A Pokerbot.',
