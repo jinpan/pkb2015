@@ -69,6 +69,9 @@ class Bot:
                 g.timebank = timebank
 
                 # Update legal moves
+                g.call_amt = 0
+                g.min_raise = 0 # If we can't raise, this will stay at 0
+                g.max_raise = 0 # If we can't raise, this will stay at 0
                 g.legal = list(map(lambda s: s.split(':'), legalstr))
                 for m in g.legal:
                     if m[0] == 'CALL':
@@ -78,14 +81,15 @@ class Bot:
                     elif m[0] == 'RAISE' or m[0] == 'BET':
                         g.min_raise = float(m[1])
                         g.max_raise = float(m[2])
+                        g.validRB = m[0]
 
                 # TBD: Use phase 1 of the brain to update pmfs of villains
                 # TBD: Use phase 2 of the brain to determine best action
 
                 # Maybe would look something like this?
                 """action = Brain.play(g,history)"""
-                # For now, lets make the bot only check/fold
-                action = g.max_raise
+                # For now, lets make the bot max raise
+                action = max(g.max_raise,g.call_amt)
 
                 # Interpret the action and then send
                 s.send(self.interpret(action))
@@ -153,17 +157,16 @@ class Bot:
         """
         g = self.game
         print ''
-        print 'HAND:          '+ str(g.hands_idx)
+        print 'HAND:          ' + str(g.hands_idx)
         print 'Legal actions: ' + str(g.legal)
         print 'Action:        ' + str(action)
 
-        # use RBstr to decide whether to RAISE or just BET
-        RBstr = 'BET:' if g.call_amt == 0 else 'RAISE:'
-        if action > g.max_raise:
+        # use validRB to decide whether to RAISE or just BET
+        if action > g.max_raise and g.max_raise != 0:
             print 'Raise too high.'
-            return RBstr+str(g.max_raise)+'\n' # Cap the raise
-        elif action >= g.min_raise:
-            return RBstr+str(action)+'\n' # Perform raise
+            return g.validRB+':'+str(g.max_raise)+'\n' # Cap the raise
+        elif action >= g.min_raise and g.max_raise != 0:
+            return g.validRB+':'+str(action)+'\n' # Perform raise
         elif action >= g.call_amt and g.call_amt != 0:
             return 'CALL:'+str(action)+'\n' # Perform call
         elif action == 0 and g.call_amt == 0:

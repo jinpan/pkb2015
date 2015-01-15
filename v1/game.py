@@ -42,6 +42,7 @@ class Game:
    		self.call_amt = 0 # Amount needed to call (if 0, hero can 'check')
    		self.min_raise = bb # Minimum raise
    		self.max_raise = bb+1 # Maximum raise
+   		self.validRB = 'RAISE:' # Ignore this, just used to bet properly
 
    		# Set up the rest
    		self.timebank = timebank # Time left
