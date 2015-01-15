@@ -1,1 +1,1 @@
-python Player.py %1
+python Bot.py %1

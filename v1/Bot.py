@@ -2,7 +2,7 @@ import argparse
 import socket
 import sys
 
-# from game import Game
+from game import Game
 # from brain import Brain
 
 """
@@ -22,13 +22,13 @@ class Bot:
         Get a file-object for reading packets from the socket.
         Using this ensures that you get exactly one packet per read.
         """
-        f_in = inputsocket.makefile()
+        f_in = input_socket.makefile()
         while True:
             # Block until the engine sends us a packet.
             data = f_in.readline().strip()
             # If data is None, connection has closed.
             if not data:
-                print('Gameover, engine disconnected.')
+                print 'Gameover, engine disconnected.'
                 break
 
             msg = data.split()
@@ -43,7 +43,7 @@ class Bot:
                 # NEWHAND handId seat holeCard1 holeCard2 [stackSizes] [playerNames] numActivePlayers [activePlayers] timeBank
                 form = 'nn233n3n'
                 [hands_idx,seat,hole,stacks,names,n_active,isActive,timebank] = self.parse(msg[1:],form)
-                self.game = g
+                g = self.game
                 g.hands_idx = hands_idx
                 # Figure out seating, isActive, & stacks for all players
                 g.seating = [names.index(g.p[i].name) for i in range(3)] # Returns seats in index order
@@ -56,7 +56,7 @@ class Bot:
                 # GETACTION potSize numBoardCards [boardCards] [stackSizes] numActivePlayers [activePlayers] numLastActions [lastActions] numLegalActions [legalActions] timebank
                 form = 'nl3n3lln'
                 [pot,comm,stacks,n_active,isActive,history,legalstr,timebank] = self.parse(msg[1:],form)
-                self.game = g
+                g = self.game
                 # Update game state
                 g.pot = pot
                 g.comm = comm
@@ -69,15 +69,15 @@ class Bot:
                 g.timebank = timebank
 
                 # Update legal moves
-                g.legal = list(map(lambda s: s.split(':'), legalstr.split(',')))
+                g.legal = list(map(lambda s: s.split(':'), legalstr))
                 for m in g.legal:
-                    if m[0] == 'CALL'
-                        g.call_amt = m[1]
-                    elif m[0] == 'CHECK'
+                    if m[0] == 'CALL':
+                        g.call_amt = float(m[1])
+                    elif m[0] == 'CHECK':
                         g.call_amt = 0
                     elif m[0] == 'RAISE' or m[0] == 'BET':
-                        g.min_raise = m[1]
-                        g.max_raise = m[2]
+                        g.min_raise = float(m[1])
+                        g.max_raise = float(m[2])
 
                 # TBD: Use phase 1 of the brain to update pmfs of villains
                 # TBD: Use phase 2 of the brain to determine best action
@@ -85,7 +85,7 @@ class Bot:
                 # Maybe would look something like this?
                 """action = Brain.play(g,history)"""
                 # For now, lets make the bot only check/fold
-                action = 0
+                action = g.max_raise
 
                 # Interpret the action and then send
                 s.send(self.interpret(action))
@@ -93,9 +93,9 @@ class Bot:
                 # HANDOVER [stackSizes] numBoardCards [boardCards] numLastActions [lastActions] timeBank
                 form = '3lln'
                 [stacks,comm,history,timebank] = self.parse(msg[1:],form)
-                self.game = g
+                g = self.game
                 # Update game state
-                g.timebank = timeBank
+                g.timebank = timebank
                 g.comm = comm
                 # Update stacks
                 for i in range(3):
@@ -108,7 +108,7 @@ class Bot:
 
             elif msg_type == "KEYVALUE":
                 # Here we would probably store villain traits for future games
-                print('I got a KEYVALUE packet. What do I do with it?')
+                print 'I got a KEYVALUE packet. What do I do with it?'
 
             elif msg_type == "REQUESTKEYVALUES":
                 # At the end, the engine will allow your bot save key/value pairs.
@@ -151,12 +151,19 @@ class Bot:
         Otherwise, print an error.
 
         """
-        self.game = g
+        g = self.game
+        print ''
+        print 'HAND:          '+ str(g.hands_idx)
+        print 'Legal actions: ' + str(g.legal)
+        print 'Action:        ' + str(action)
+
+        # use RBstr to decide whether to RAISE or just BET
+        RBstr = 'BET:' if g.call_amt == 0 else 'RAISE:'
         if action > g.max_raise:
-            print('Raise too high.')
-            return 'RAISE:'+str(g.max_raise)+'\n' # Cap the raise
+            print 'Raise too high.'
+            return RBstr+str(g.max_raise)+'\n' # Cap the raise
         elif action >= g.min_raise:
-            return 'RAISE:'+str(action)+'\n' # Perform raise
+            return RBstr+str(action)+'\n' # Perform raise
         elif action >= g.call_amt and g.call_amt != 0:
             return 'CALL:'+str(action)+'\n' # Perform call
         elif action == 0 and g.call_amt == 0:
@@ -164,7 +171,7 @@ class Bot:
         elif action < g.call_amt:
             return 'FOLD\n' # Perform fold
         else:
-            print('Error: impossible action '+str(action))
+            print 'Error: impossible action '+str(action) 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='A Pokerbot.',
