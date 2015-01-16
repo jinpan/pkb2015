@@ -8,7 +8,7 @@ class Player:
 		self.isActive = True # Whether busted or not
 		self.seat = 1 # Default seat is button
 		self.hole = [] # This should only be needed by the hero
-		self.isin = True # Whether folded or not
+		self.isIn = True # Whether folded or not
 
 class Villain(Player):
 	"""
@@ -20,10 +20,9 @@ class Villain(Player):
 		Player.__init__(self,name,stack)
 		# TBD: Put villain traits here
 
-
 		# Valid villain moves are currently: 
 		# ['CHECKFOLD'], ['CALL',amt], ['RAISE',amt], ['NEWBET']
-		# BET is included in RAISE and ENDBET is when new cards or streets open
+		# BET is included in RAISE and NEWBET is when new cards or streets open
 		self.move_list = [['NEWBET']]
 
 		# Note: 52 choose 2 = 1326
@@ -31,14 +30,16 @@ class Villain(Player):
 		self.cdf = map(lambda x: x/1326., xrange(1326)) # CDF of hole cards
 		# Equity of hole cards (TBD: MAKE THIS THE UNIFORM PREFLOP EQUITY)
 		self.equ = map(lambda x: x/1326., xrange(1326)) # Linear for now
+		# Action pdf given hole cards P(A_n | C)
+		self.act = [1/1326.]*1326 # Default is linear
 
 		# Cutoffs are used to convert villain equity into villain pdfs.
-		# Any equity >= the cutoff key will result in the key's move.
-		self.cutoffs = { # Anything below CALL will be a CHECKFOLD
-		'CALL': .5,
-		'RAISE': .8
+		# Any equity the cutoff key range will result in the key's move.
+		self.cutoffs = {
+		'CHECKFOLD':[0,.5],
+		'CALL': [.5,.8],
+		'RAISE': [.8,1.],
 		}
-
 
 class Game:
 	"""
@@ -63,7 +64,7 @@ class Game:
    		self.validRB = 'RAISE:' # Ignore this, just used to bet properly
 
    		# Set up the rest
-   		self.timebank = timebank # Time left
+   		self.timebank = timebank # Time left in all hands
    		self.hands_max = hands_max # Maximum number of hands engine will play
    		self.hands_idx = 1 # Current number of hands dealt
    		self.n_active = 3 # Number of currently active players (not busted)

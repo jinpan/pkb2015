@@ -51,9 +51,10 @@ class Bot:
                     g.p[i].seat = g.seating[i]
                     g.p[i].stack = stacks[g.seating[i]]
                     g.p[i].isActive = isActive[g.seating[i]]
-                # Clear villain history
+                # Clear villain history and make all villains 'In'
                 for v in g.p[1:]:
                     v.move_list = [['NEWBET']]
+                    v.isIn = True
 
             elif msg_type == "GETACTION":
                 # GETACTION potSize numBoardCards [boardCards] [stackSizes] numActivePlayers [activePlayers] numLastActions [lastActions] numLegalActions [legalActions] timebank
@@ -89,14 +90,9 @@ class Bot:
                 # Update player move histories
                 self.study(historystr)
 
-                # TBD: Use phase 1 of the brain to update pmfs of villains
-                # TBD: Use phase 2 of the brain to determine best action
-
-                # Maybe would look something like this?
-                """action = Brain.play(g)"""
-                # For now, lets make the bot max raise
-                action = max(g.max_raise,g.call_amt)
-
+                # Play poker!
+                action = Brain.play(g)
+                
                 # Interpret the action and then send
                 s.send(self.interpret(action))
 
@@ -165,6 +161,8 @@ class Bot:
         g = self.game        
         print 'Legal actions: ' + str(g.legal)
         print 'Action:        ' + str(action)
+        print 'Comm Cards:    ' + str(g.comm) 
+        print str(g.timebank)+ ' sec left.'
         print ''
 
         # use validRB to decide whether to RAISE or just BET
@@ -184,13 +182,17 @@ class Bot:
     def study(self,historystr):
         """
         Updates player move history given a historystr.
+        Also determine whether a player has folded.
         """
         g = self.game
         history = map(lambda s: s.split(':'), historystr)
         for m in history:
             idx = g.name2ind.get(m[-1]) # Player idx that made move
             if idx != 0: # As long as we aren't analyzing ourselves...
-                if m[0] == 'FOLD' or m[0] == 'CHECK':
+                if m[0] == 'FOLD':
+                    g.p[idx].isIn = False # Fold the player
+                    g.p[idx].move_list.append(['CHECKFOLD'])
+                elif m[0] == 'CHECK':
                     g.p[idx].move_list.append(['CHECKFOLD'])
                 elif m[0] == 'CALL':
                     g.p[idx].move_list.append(['CALL',float(m[1])])
