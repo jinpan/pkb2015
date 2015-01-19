@@ -32,7 +32,7 @@ main()
         freq[i] = 0;
 
     // loop over every possible two-card hand
-    for(a=3;a<51;a++)
+    for(a=0;a<51;a++)
     {
         hand[0] = deck[a];
         for(b=a+1;b<52;b++)
