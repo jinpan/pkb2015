@@ -2,8 +2,9 @@ import argparse
 import socket
 import sys
 
-from game import Game
+from game import *
 from brain import Brain
+from tryhard import Tryhard
 
 """
 Class to communicate with the engine and update the 'Game' class.
@@ -40,34 +41,40 @@ class Bot:
                 self.game = Game(names,stack,bb,hands_max,timebank)
             
             elif msg_type == 'NEWHAND':
+                print msg
                 # NEWHAND handId seat holeCard1 holeCard2 [stackSizes] [playerNames] numActivePlayers [activePlayers] timeBank
                 form = 'nn233n3n'
                 [hands_idx,seat,hole,stacks,names,n_active,isActive,timebank] = self.parse(msg[1:],form)
                 g = self.game
                 g.hands_idx = hands_idx
-                # Figure out seating, isActive, & stacks for all players
-                g.seating = [names.index(g.p[i].name) for i in range(3)] # Returns seats in index order
+                # Figure out ind2seat, isActive, & stacks for all players
+                seating = [names.index(g.p[i].name) for i in range(3)] # Returns seats in index order
+                g.ind2seat  = dict(zip([0,1,2],seating))
+                g.seat2ind  = dict(zip(seating,[0,1,2]))
                 for i in range(3):
-                    g.p[i].seat = g.seating[i]
-                    g.p[i].stack = stacks[g.seating[i]]
-                    g.p[i].isActive = isActive[g.seating[i]]
+                    g.p[i].seat = g.ind2seat[i]
+                    g.p[i].stack = stacks[g.ind2seat[i]]
+                    g.p[i].isActive = isActive[g.ind2seat[i]]
+
                 # Clear villain history and make all villains 'In'
+                g.historystr = 'H'
+                g.action_on = 1
                 for v in g.p[1:]:
-                    v.move_list = [['NEWBET']]
                     v.isIn = True
 
             elif msg_type == "GETACTION":
                 # GETACTION potSize numBoardCards [boardCards] [stackSizes] numActivePlayers [activePlayers] numLastActions [lastActions] numLegalActions [legalActions] timebank
                 form = 'nl3n3lln'
-                [pot,comm,stacks,n_active,isActive,historystr,legalstr,timebank] = self.parse(msg[1:],form)
+                [pot,comm,stacks,n_active,isActive,historypak,legalpak,timebank] = self.parse(msg[1:],form)
                 g = self.game
                 # Update game state
                 g.pot = pot
                 g.comm = comm
-                # Update stacks (seating hasn't changed)
+                # Update stacks (ind2seat hasn't changed)
                 for i in range(3):
-                    g.p[i].stack = stacks[g.seating[i]]
-                    g.p[i].isActive = isActive[g.seating[i]]
+                    g.p[i].stack = stacks[g.ind2seat[i]]
+                    g.p[i].isActive = isActive[g.ind2seat[i]]
+
                 # Update rest
                 g.n_active = n_active
                 g.timebank = timebank
@@ -76,7 +83,7 @@ class Bot:
                 g.call_amt = 0
                 g.min_raise = 0 # If we can't raise, this will stay at 0
                 g.max_raise = 0 # If we can't raise, this will stay at 0
-                g.legal = map(lambda s: s.split(':'), legalstr)
+                g.legal = map(lambda s: s.split(':'), legalpak)
                 for m in g.legal:
                     if m[0] == 'CALL':
                         g.call_amt = float(m[1])
@@ -88,7 +95,7 @@ class Bot:
                         g.validRB = m[0]
 
                 # Update player move histories
-                self.study(historystr)
+                Tryhard.study(g,historypak)
 
                 # Play poker!
                 action = Brain.play(g)
@@ -99,14 +106,14 @@ class Bot:
             elif msg_type == "HANDOVER":
                 # HANDOVER [stackSizes] numBoardCards [boardCards] numLastActions [lastActions] timeBank
                 form = '3lln'
-                [stacks,comm,historystr,timebank] = self.parse(msg[1:],form)
+                [stacks,comm,historypak,timebank] = self.parse(msg[1:],form)
                 g = self.game
                 # Update game state
                 g.timebank = timebank
                 g.comm = comm
                 # Update stacks
                 for i in range(3):
-                    g.p[i].stack = stacks[g.seating[i]]
+                    g.p[i].stack = stacks[g.ind2seat[i]]
                 
                 # TBD: Do we want to update player profiles based on this history?
                 # Maybe would look something like this?
@@ -145,7 +152,7 @@ class Bot:
             else: # Parse a list of known length given by f
                 parsed.append(msg[i:i+int(f)])
                 i += int(f)
-        return parsed
+        return parsed # Read input
     def interpret(self,action):
         """
         Interpret the action to return a string that can be understood by the
@@ -159,8 +166,6 @@ class Bot:
 
         """
         g = self.game        
-        print 'Legal actions: ' + str(g.legal)
-        print 'Action:        ' + str(action)
         print 'Comm Cards:    ' + str(g.comm) 
         print str(g.timebank)+ ' sec left.'
         print ''
@@ -178,35 +183,7 @@ class Bot:
         elif action < g.call_amt:
             return 'FOLD\n' # Perform fold
         else:
-            print 'Error: impossible action '+str(action) 
-    def study(self,historystr):
-        """
-        Updates player move history given a historystr.
-        Also determine whether a player has folded.
-        """
-        g = self.game
-        history = map(lambda s: s.split(':'), historystr)
-        for m in history:
-            idx = g.name2ind.get(m[-1]) # Player idx that made move
-            if idx != 0: # As long as we aren't analyzing ourselves...
-                if m[0] == 'FOLD':
-                    g.p[idx].isIn = False # Fold the player
-                    g.p[idx].move_list.append(['CHECKFOLD'])
-                elif m[0] == 'CHECK':
-                    g.p[idx].move_list.append(['CHECKFOLD'])
-                elif m[0] == 'CALL':
-                    g.p[idx].move_list.append(['CALL',float(m[1])])
-                elif m[0] == 'RAISE' or m[0] == 'BET':
-                    g.p[idx].move_list.append(['RAISE',float(m[1])])
-                else:
-                    for v in g.p[1:]:
-                        if v.move_list[-1] != ['NEWBET']:
-                            v.move_list.append(['NEWBET'])
-
-        print 'HAND:          ' + str(g.hands_idx)
-        print 'HISTORY:       ' + str(history)
-        print g.p[1].name + ' HIST:       ' + str(g.p[1].move_list)
-        print g.p[2].name + ' HIST:       ' + str(g.p[2].move_list)
+            print 'Error: impossible action '+str(action)  # Return output
 
 
 if __name__ == '__main__':

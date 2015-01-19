@@ -26,8 +26,8 @@ class Brain:
 		# Determine the equity curve based on the community cards
 		g = game # For easy typing
 		for v in g.p[1:]: # For each villain
-			# Make sure villain hasn't folded and isn't 'NEWBET'
-			if v.isIn and v.move_list[-1][0] != 'NEWBET':
+			# Make sure villain hasn't folded and has made at least 1 move
+			if v.isIn and v.last_move != '':
 				'''
 				# Grab the equity curve from the lookup table if not river
 				if len(g.comm) != 5:
@@ -37,12 +37,12 @@ class Brain:
 					# TBD: Run Enumeration (45 choose 3 = 14190)
 					# v.equ = ...
 				'''
-				print 'Running <analyze> on '+v.name
+				print 'Running <analyze> on ' + v.name
 				# Compute the action pdf given hole cards using cutoffs
 				# Parameter determining betting variance (flakiness)
 				sharp = 3 # Goes from 0 (flaky) to 10 (sharp)
 				# low and high cut determine edges of cutoff
-				[low_cut,high_cut] = v.cutoffs[v.move_list[-1][0]]
+				[low_cut,high_cut] = v.cutoffs[v.last_move]
 				# A shifted 2-term logistic converts equity to action pdf
 				k = math.exp(sharp*0.5) # k parameter in logistic
 				# The 0.05 offset is for edge cases
