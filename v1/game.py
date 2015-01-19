@@ -6,7 +6,7 @@ class Player:
 		self.name = name
 		self.stack = stack
 		self.isActive = True # Whether busted or not
-		self.seat = 1 # Default seat is button
+		self.seat = 0 # Default seat is button
 		self.hole = [] # This should only be needed by the hero
 		self.isIn = True # Whether folded or not
 
@@ -20,10 +20,7 @@ class Villain(Player):
 		Player.__init__(self,name,stack)
 		# TBD: Put villain traits here
 
-		# Valid villain moves are currently: 
-		# ['CHECKFOLD'], ['CALL',amt], ['RAISE',amt], ['NEWBET']
-		# BET is included in RAISE and NEWBET is when new cards or streets open
-		self.move_list = [['NEWBET']]
+		self.last_move = ''
 
 		# Note: 52 choose 2 = 1326
 		self.pdf = [1/1326.]*1326 # PDF of hole cards
@@ -50,7 +47,8 @@ class Game:
    		# Create list of players (of which we are index 0)
    		self.p = [Player(names[0],stack),Villain(names[1],stack),Villain(names[2],stack)]
    		self.names = names
-   		self.seating = dict(zip([0,1,2],[0,1,2])) # Returns the seat given index
+   		self.ind2seat = dict(zip([0,1,2],[0,1,2])) # Returns the seat given index
+   		self.seat2ind = dict(zip([0,1,2],[0,1,2])) # Returns the index given seat
    		self.name2ind = dict(zip([x.name for x in self.p],[0,1,2])) # Returns index given name
 
    		# Set up the chips, table, & legal moves
@@ -63,9 +61,13 @@ class Game:
    		self.max_raise = bb+1 # Maximum raise
    		self.validRB = 'RAISE:' # Ignore this, just used to bet properly
 
+   		# Set up history stuff
+   		self.history = []
+   		self.historystr = 'H'
+   		self.action_on = 1 # Seat of player who is up to play (starts with SB)
+
    		# Set up the rest
    		self.timebank = timebank # Time left in all hands
    		self.hands_max = hands_max # Maximum number of hands engine will play
    		self.hands_idx = 1 # Current number of hands dealt
    		self.n_active = 3 # Number of currently active players (not busted)
-   		self.legal = '' # Legal possible actions
