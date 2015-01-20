@@ -15,7 +15,7 @@ class Brain:
 		The main function of brain: return the optimal action. This involves
 		calling the analyze method and the decide method.
 		"""
-		Brain.analyze(game)
+		#Brain.analyze(game)
 		return Brain.decide(game)
 
 	@staticmethod
@@ -85,7 +85,7 @@ class Brain:
 		whoisin = [x.isIn for x in g.p]
 
 		# When nobody has folded...
-		if whoisin = [True,True,True]:
+		if whoisin == [True,True,True]:
 			fold_ev = 0
 			check_ev = equ_b * g.pot
 			call_ev = (1-equ_b)*g.call_amt + equ_b*g.pot
