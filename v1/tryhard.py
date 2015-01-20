@@ -1,3 +1,5 @@
+import re
+
 class Tryhard:
 	"""
 	This class handles looking over all the previous actions in a hand 
@@ -54,6 +56,123 @@ class Tryhard:
 			"""
 			# TODO: Use regex rules here on game.historystr
 			# For now, just return RAISE
+
+			# Split by N
+			split_hist = game.historystr.split('N')
+			
+			# Do all of this for preflop
+			if len(split_hist) == 1:
+				h = split_hist[0]
+				# Simple actions
+				if re.search('k',h) != None:
+					moveseat = re.search('k',h).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = 'CHECK'
+
+				if re.search('c',h) != None:
+					moveseat = re.search('c',h).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = 'CALL'
+
+				if re.search('r',h) != None:
+					moveseat = re.search('r',h).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = 'RAISE'
+
+				# Complex actions
+				if re.search('ppf',h) != None:
+					moveseat = re.search('ppf',h).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = 'BTN_FOLD'
+
+				if re.search('ppc',h) != None:
+					moveseat = re.search('ppc',h).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = 'BTN_CALL'
+
+				if re.search('ppr',h) != None:
+					moveseat = re.search('ppr',h).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = 'BTN_RAISE'
+
+				if re.search('r.?r',h) != None:
+					moveseat = re.search('r.?r',h).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = '3_BET'
+				
+				if re.search('r.?r.?f',h) != None:
+					moveseat = re.search('r.?r.?f',h).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = 'F_3_BET'
+
+				if re.search('r.?r.?r',h) != None:
+					moveseat = re.search('r.?r.?r',h).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = '4_BET'
+				
+				if re.search('r.?r.?r.?f',h) != None:
+					moveseat = re.search('r.?r.?r.?f',h).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = 'F_4_BET'
+
+				if re.search('r.?r.?r.?r',h) != None:
+					moveseat = re.search('r.?r.?r.?r',h).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = '5_BET'
+				
+				if re.search('r.?r.?r.?r.?f',h) != None:
+					moveseat = re.search('ppf',h).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = 'F_5_BET'
+
+			if len(split_hist) >= 2:
+				h = split_hist[-1]
+				# Simple actions
+				if re.search('k',h) != None:
+					moveseat = re.search('k',h).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = 'CHECK'
+
+				if re.search('c',h) != None:
+					moveseat = re.search('c',h).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = 'CALL'
+
+				if re.search('r',h) != None:
+					moveseat = re.search('r',h).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = 'RAISE'
+
+				# Complex actions
+				if re.search('r{1}',h[:2]) != None:
+					moveseat = re.search('r{1}',h[:2]).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = 'DONK_BET'
+
+				if re.search('(r{1}).?f',h[:2]) != None:
+					moveseat = re.search('(r{1}).?f',h[:2]).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = 'F_DONK_BET'
+
+				if re.search('(kr)|(k-r)|(kkr)',h[:3]) != None:
+					moveseat = re.search('(kr)|(k-r)|(kkr)',h[:3]).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = 'C_BET'
+
+				if re.search('((kr)|(k-r)|(kkr)).?f',h[:3]) != None:
+					moveseat = re.search('((kr)|(k-r)|(kkr)).?f',h[:3]).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = 'F_C_BET'
+
+				if re.search('r.?r',h) != None:
+					moveseat = re.search('r.?r',h).end() % 3
+					moveind = g.ind2seat[moveseat]
+					g.p[moveind].last_move = '2_RAISE'
+
+
+
+
+
 
 			for vil in g.p[1:]:
 				vil.last_move = 'RAISE'
