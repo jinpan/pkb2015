@@ -13,12 +13,12 @@
 /*                                               */
 /*************************************************/
 
-#define ITERATIONS 5000
+#define ITERATIONS 1000
 
 main()
 {
-    int deck[52], hand[7], freq[10], shuffle[52];
-    int a, b, c, i, j;
+    int deck[52], hand[5], shuffle[52];
+    int a, b, c, d, e, i, j;
 
     // seed the random number generator
     srand48( getpid() );
@@ -27,56 +27,93 @@ main()
     init_deck( deck );
     init_deck( shuffle );
 
-    // zero out the frequency array
-    for ( i = 0; i < 10; i++ )
-        freq[i] = 0;
-
-    // loop over every possible two-card hand
-    for(a=0;a<51;a++)
-    {
+    // loop over every possible five-card hand
+    for(a=0;a<48;a++) {
         hand[0] = deck[a];
-        for(b=a+1;b<52;b++)
-        {
-            for (c = 0; c < 52; c++) {
-                if (deck[a] == shuffle[c]) {
-                    int temp = shuffle[50];
-                    shuffle[50] = shuffle[c];
-                    shuffle[c] = temp;
+
+        for(b=a+1;b<49;b++) {
+            hand[1] = deck[b];
+
+            for(c=b+1;c<50;c++) {
+                hand[2] = deck[c];
+
+                // Iterate over hero hands
+                for(d=c+1;d<51;d++) {
+
+                    for(e=d+1;e<52;e++) {
+                        for (i = 0; i < 52; i++) {
+                            if (deck[e] == shuffle[i]) {
+                                int temp = shuffle[51];
+                                shuffle[51] = shuffle[i];
+                                shuffle[i] = temp;
+                                break;
+                            }
+                        }
+                        for (i = 0; i < 52; i++) {
+                            if (deck[d] == shuffle[i]) {
+                                int temp = shuffle[50];
+                                shuffle[50] = shuffle[i];
+                                shuffle[i] = temp;
+                                break;
+                            }
+                        }
+                        for (i = 0; i < 52; i++) {
+                            if (deck[c] == shuffle[i]) {
+                                int temp = shuffle[49];
+                                shuffle[49] = shuffle[i];
+                                shuffle[i] = temp;
+                                break;
+                            }
+                        }
+                        for (i = 0; i < 52; i++) {
+                            if (deck[b] == shuffle[i]) {
+                                int temp = shuffle[48];
+                                shuffle[48] = shuffle[i];
+                                shuffle[i] = temp;
+                                break;
+                            }
+                        }
+                        for (i = 0; i < 52; i++) {
+                            if (deck[a] == shuffle[i]) {
+                                int temp = shuffle[47];
+                                shuffle[47] = shuffle[i];
+                                shuffle[i] = temp;
+                                break;
+                            }
+                        }
+                        double win_count = 0.0;
+                        for (i = 0; i < ITERATIONS; i++) {
+                            for (j = 0; j < 4; j++) {
+                                int r = rand() % (47-j);
+                                int temp = shuffle[r];
+                                shuffle[r] = shuffle[46-j];
+                                shuffle[46-j] = temp;
+                            }
+                            hand[3] = deck[d];
+                            hand[4] = deck[e];
+
+                            // turn and river
+                            hand[5] = shuffle[43];
+                            hand[6] = shuffle[44];
+                            short our_score = eval_7hand(hand);
+
+                            // change hand to opponent hand
+                            hand[3] = shuffle[45];
+                            hand[4] = shuffle[46];
+                            short their_score = eval_7hand(hand);
+
+                            // score calculation
+                            if (our_score < their_score)
+                                win_count+=1.0;
+                            else if (our_score == their_score)
+                                win_count+=0.5;
+                        }
+                        printf("%.3f ", win_count / ITERATIONS);
+                    }
                 }
+                printf("\n");
             }
-            for (c = 0; c < 52; c++) {
-                if (deck[b] == shuffle[c]) {
-                    int temp = shuffle[51];
-                    shuffle[51] = shuffle[c];
-                    shuffle[c] = temp;
-                }
-            }
-            double win_count = 0.0;
-            for (i = 0; i < ITERATIONS; i++) {
-                for (j = 0; j < 7; j++) {
-                    int r;
-                    while (shuffle[(r = rand() % (50-j))] == deck[a] 
-                        || shuffle[r] == deck[b]);
-                    if (r == 49-j) continue;
-                    int temp = shuffle[r];
-                    shuffle[r] = shuffle[49-j];
-                    shuffle[49-j] = temp;
-                }
-                for (j = 0; j < 5; j++) {
-                    hand[j] = shuffle[43+j];
-                }
-                hand[5] = shuffle[50];
-                hand[6] = shuffle[51];
-                short our_score = eval_7hand(hand); 
-                hand[5] = shuffle[48];
-                hand[6] = shuffle[49];
-                short their_score = eval_7hand(hand);
-                if (our_score < their_score)
-                    win_count+=1.0;
-                else if (our_score == their_score)
-                    win_count+=0.0;
-            }
-            printf("Equity for %d %d is: %.5f\n", a, b, win_count / ITERATIONS);
         }
     }
+
 }
