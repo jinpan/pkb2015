@@ -38,9 +38,10 @@ main()
                 hand[2] = deck[c];
 
                 // Iterate over hero hands
-                for(d=c+1;d<51;d++) {
-
+                for(d=0;d<51;d++) {
+                    if (d == c || d == b || d == a) continue;
                     for(e=d+1;e<52;e++) {
+                        if (e == c || e == b || e == a) continue;
                         for (i = 0; i < 52; i++) {
                             if (deck[e] == shuffle[i]) {
                                 int temp = shuffle[51];
