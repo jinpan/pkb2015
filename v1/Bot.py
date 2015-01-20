@@ -96,6 +96,7 @@ class Bot:
 
                 # Update player move histories
                 Tryhard.study(g,historypak)
+                Tryhard.assimilate(g)
 
                 # Play poker!
                 action = Brain.play(g)

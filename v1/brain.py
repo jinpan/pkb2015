@@ -15,7 +15,7 @@ class Brain:
 		The main function of brain: return the optimal action. This involves
 		calling the analyze method and the decide method.
 		"""
-		Brain.analyze(game)
+		#Brain.analyze(game)
 		return Brain.decide(game)
 
 	@staticmethod
@@ -66,13 +66,56 @@ class Brain:
 		"""
 		Determine the best course of action given the villain pdfs (phase 2).
 		"""
+		g = game
+		raise_amt = max(g.max_raise,game.call_amt)
 		# Compute true equity using biased monte-carlo
-		# true_equity = ...
+		# Both villains
+		equ_b = .3
+		# Villain1 only
+		equ_1 = .5
+		# Villain2 only
+		equ_2 = .5
 
-		# Super simple bot: maxraise if equity >= .5 else checkfold
+		# Here are the numbers available:
+		# g.pot
+		# equ_b, equ_1, equ_2
+		# maxraise
+		# Probabilities of folding for villains
 
-		# For now, just maxraise
-		action = max(game.max_raise,game.call_amt)
+		whoisin = [x.isIn for x in g.p]
+
+		# When nobody has folded...
+		if whoisin == [True,True,True]:
+			fold_ev = 0
+			check_ev = equ_b * g.pot
+			call_ev = (1-equ_b)*g.call_amt + equ_b*g.pot
+			raise_ev = (
+				g.p[1].pf     * g.p[2].pf * g.pot +
+				((1-g.p[1].pf) * (1-g.p[2].pf) * (equ_b*(g.pot + raise_amt*2) - (1-equ_b)*raise_amt)) +
+				((1-g.p[1].pf) * g.p[2].pf * (equ_1*(g.pot + raise_amt) - (1-equ_1)*raise_amt)) +
+				((1-g.p[2].pf) * g.p[1].pf * (equ_2*(g.pot + raise_amt) - (1-equ_2)*raise_amt))
+				)
+		# When 1 person has folded
+		else:
+			# Figure out who is the villain that is still in
+			vin = g.p[1] if whoisin == [True, True, False] else g.p[2]
+			equ = equ_1  if whoisin == [True, True, False] else equ_2
+
+			fold_ev = 0
+			check_ev = equ * g.pot
+			call_ev = (1-equ)*g.call_amt + equ*g.pot
+			raise_ev = vin.pf * g.pot + (1-vin.pf) * (equ * (g.pot + raise_amt) - (1-equ)*raise_amt)
+			
+		# Find highest ev
+		all_ev = [fold_ev,check_ev,call_ev,raise_ev]
+		max_ev_ind = all_ev.index(max(all_ev))
+		if max_ev_ind == 0 or max_ev_ind == 1:
+			action = 0
+		elif max_ev_ind == 2:
+			action = g.call_amt
+		elif max_ev_ind == 3:
+			action = raise_amt
+
 		return action
 
 	@staticmethod

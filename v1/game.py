@@ -10,6 +10,8 @@ class Player:
 		self.hole = [] # This should only be needed by the hero
 		self.isIn = True # Whether folded or not
 
+		self.last_move = ''
+
 class Villain(Player):
 	"""
 	This class represents a villain in poker. It has extra attributes which
@@ -19,8 +21,7 @@ class Villain(Player):
 	def __init__(self,name,stack):
 		Player.__init__(self,name,stack)
 		# TBD: Put villain traits here
-
-		self.last_move = ''
+		self.pf = 0.5 # Probability of folding
 
 		# Note: 52 choose 2 = 1326
 		self.pdf = [1/1326.]*1326 # PDF of hole cards
